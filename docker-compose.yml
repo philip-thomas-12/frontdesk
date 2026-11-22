@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: frontdesk-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: frontdesk_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d frontdesk_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: frontdesk-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 5001
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://postgres:password@postgres:5432/frontdesk_db?schema=public"
+      JWT_SECRET: "frontdesk_super_secret_jwt_key_2026_prod"
+      JWT_EXPIRES_IN: "24h"
+      CORS_ORIGIN: "http://localhost:4200"
+      SLA_TIMEZONE: "Asia/Kolkata"
+      AUTO_CLOSE_INTERVAL_MS: 3600000
+    ports:
+      - "5001:5001"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontdesk-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+
+volumes:
+  pgdata:
+

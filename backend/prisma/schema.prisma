@@ -1,0 +1,214 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum Priority {
+  URGENT
+  MEDIUM
+  LOW
+}
+
+enum Status {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SenderType {
+  AGENT
+  CUSTOMER
+  SYSTEM
+}
+
+enum MessageType {
+  PUBLIC_REPLY
+  INTERNAL_NOTE
+}
+
+model User {
+  id           String             @id @default(uuid())
+  name         String
+  email        String             @unique
+  passwordHash String
+  role         Role               @default(AGENT)
+  avatarUrl    String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  // Relations
+  assignedTickets Ticket[]           @relation("AssignedAgent")
+  ticketMessages  TicketMessage[]    @relation("UserMessages")
+  internalNotes   InternalNote[]     @relation("UserInternalNotes")
+  assignments     TicketAssignment[] @relation("AgentAssignments")
+  auditEvents     TicketAuditLog[]   @relation("ActorAuditLogs")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  company   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tickets Ticket[] @relation("CustomerTickets")
+
+  @@index([email])
+  @@index([name])
+  @@map("customers")
+}
+
+model Ticket {
+  id              String    @id @default(uuid())
+  ticketNumber    Int       @unique @default(autoincrement())
+  title           String
+  description     String    @db.Text
+  customerId      String
+  customer        Customer  @relation("CustomerTickets", fields: [customerId], references: [id], onDelete: Restrict)
+  assignedAgentId String?
+  assignedAgent   User?     @relation("AssignedAgent", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  priority        Priority  @default(MEDIUM)
+  status          Status    @default(OPEN)
+  
+  // Timestamps & SLA Targets
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  firstResponseAt DateTime?
+  responseDueAt   DateTime?
+  resolutionDueAt DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  waitingSince    DateTime?
+  
+  // Reopening tracking
+  reopenedAt      DateTime?
+  reopenCount     Int       @default(0)
+  
+  // Concurrency tracking
+  version         Int       @default(1)
+
+  // Relations
+  messages        TicketMessage[]
+  internalNotes   InternalNote[]
+  assignments     TicketAssignment[]
+  auditLogs       TicketAuditLog[]
+  slaPauses       SLAPause[]
+
+  @@index([ticketNumber])
+  @@index([customerId])
+  @@index([assignedAgentId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([responseDueAt])
+  @@index([resolutionDueAt])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id         String      @id @default(uuid())
+  ticketId   String
+  ticket     Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId   String?
+  sender     User?       @relation("UserMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  senderType SenderType  @default(AGENT)
+  senderName String
+  senderEmail String?
+  content    String      @db.Text
+  type       MessageType @default(PUBLIC_REPLY)
+  createdAt  DateTime    @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
+  @@map("ticket_messages")
+}
+
+model InternalNote {
+  id        String   @id @default(uuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("UserInternalNotes", fields: [authorId], references: [id], onDelete: Restrict)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("internal_notes")
+}
+
+model TicketAssignment {
+  id         String    @id @default(uuid())
+  ticketId   String
+  ticket     Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  agentId    String
+  agent      User      @relation("AgentAssignments", fields: [agentId], references: [id], onDelete: Restrict)
+  assignedAt DateTime  @default(now())
+  releasedAt DateTime?
+
+  @@index([ticketId])
+  @@index([agentId])
+  @@index([assignedAt])
+  @@map("ticket_assignments")
+}
+
+model SLAPause {
+  id                     String    @id @default(uuid())
+  ticketId               String
+  ticket                 Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  startedAt              DateTime  @default(now())
+  endedAt                DateTime?
+  durationWorkingMinutes Int?
+
+  @@index([ticketId])
+  @@index([startedAt])
+  @@map("sla_pauses")
+}
+
+model TicketAuditLog {
+  id        String   @id @default(uuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?    @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  actorName String
+  actorRole String
+  eventType String
+  oldValue  String?
+  newValue  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
+  @@index([eventType])
+  @@map("ticket_audit_logs")
+}
+
+model Holiday {
+  id   String   @id @default(uuid())
+  date DateTime @unique @db.Date
+  name String
+
+  @@map("holidays")
+}
+
