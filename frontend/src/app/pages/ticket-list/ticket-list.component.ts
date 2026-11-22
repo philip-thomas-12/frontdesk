@@ -45,8 +45,68 @@ import { CustomerPreviewModalComponent } from '../../components/customer-preview
       </div>
 
       <!-- Filters & Search Toolbar -->
-      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <!-- Meera's Quick Triage Pills (Section 3 Requirement) -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">Quick View:</span>
+          
+          <button
+            type="button"
+            (click)="setQuickFilter('ALL')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            [ngClass]="activeQuickFilter === 'ALL' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          >
+            All Tickets
+          </button>
+
+          <button
+            type="button"
+            (click)="setQuickFilter('OVERDUE')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+            [ngClass]="activeQuickFilter === 'OVERDUE' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'"
+          >
+            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse" *ngIf="activeQuickFilter !== 'OVERDUE'"></span>
+            <span>🚨 Already Late</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="setQuickFilter('WAITING')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+            [ngClass]="activeQuickFilter === 'WAITING' ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'"
+          >
+            <span>⏳ Waiting on Customer</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="setQuickFilter('MY_ASSIGNED')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+            [ngClass]="activeQuickFilter === 'MY_ASSIGNED' ? 'bg-brand-600 text-white shadow-xs' : 'bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200'"
+          >
+            <span>👤 My Assigned</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="setQuickFilter('UNASSIGNED')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+            [ngClass]="activeQuickFilter === 'UNASSIGNED' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'"
+          >
+            <span>⚡ Unassigned (Ready to Claim)</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="setQuickFilter('URGENT')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+            [ngClass]="activeQuickFilter === 'URGENT' ? 'bg-red-700 text-white shadow-xs' : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'"
+          >
+            <span>🔥 Urgent (2h SLA)</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
           <!-- Search -->
           <div class="md:col-span-2 relative">
             <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,6 +375,7 @@ export class TicketListComponent implements OnInit {
   pagination: any = null;
   loading = true;
   selectedTicketForCustomerPreview: string | null = null;
+  activeQuickFilter: 'ALL' | 'OVERDUE' | 'WAITING' | 'MY_ASSIGNED' | 'UNASSIGNED' | 'URGENT' = 'ALL';
 
   filters: TicketFilters = {
     search: '',
@@ -335,6 +396,28 @@ export class TicketListComponent implements OnInit {
     private router: Router,
     private toast: ToastService
   ) {}
+
+  setQuickFilter(type: 'ALL' | 'OVERDUE' | 'WAITING' | 'MY_ASSIGNED' | 'UNASSIGNED' | 'URGENT') {
+    this.activeQuickFilter = type;
+    this.filters.status = 'ALL';
+    this.filters.priority = 'ALL';
+    this.filters.assignedAgentId = 'ALL';
+    this.filters.isOverdue = 'false';
+
+    if (type === 'OVERDUE') {
+      this.filters.isOverdue = 'true';
+    } else if (type === 'WAITING') {
+      this.filters.status = 'WAITING_FOR_CUSTOMER';
+    } else if (type === 'MY_ASSIGNED') {
+      this.filters.assignedAgentId = this.auth.currentUserValue?.id || 'ALL';
+    } else if (type === 'UNASSIGNED') {
+      this.filters.assignedAgentId = 'UNASSIGNED';
+    } else if (type === 'URGENT') {
+      this.filters.priority = 'URGENT';
+    }
+
+    this.onFilterChange();
+  }
 
   ngOnInit() {
     this.route.queryParams.subscribe((params) => {
@@ -424,3 +507,4 @@ export class TicketListComponent implements OnInit {
     this.selectedTicketForCustomerPreview = ticketId;
   }
 }
+

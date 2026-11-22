@@ -55,3 +55,4 @@ import { ToastService, Toast } from '../../core/services/toast.service';
 export class ToastComponent {
   constructor(public toastService: ToastService) {}
 }
+

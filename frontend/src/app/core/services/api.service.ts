@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { DashboardStats, Ticket, TicketFilters, TicketMessage, InternalNote } from '../../models/ticket.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ApiService {
-  private baseUrl = 'http://localhost:5001/api';
+  private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -93,3 +94,4 @@ export class ApiService {
     return this.http.post<any>(`${this.baseUrl}/customer/tickets/${id}/reply`, payload);
   }
 }
+

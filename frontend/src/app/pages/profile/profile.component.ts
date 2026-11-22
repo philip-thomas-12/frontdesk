@@ -100,3 +100,4 @@ import { PriorityBadgeComponent } from '../../components/badges/priority-badge.c
 export class ProfileComponent {
   constructor(public auth: AuthService) {}
 }
+

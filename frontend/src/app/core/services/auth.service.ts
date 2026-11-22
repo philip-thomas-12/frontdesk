@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { User } from '../../models/ticket.model';
+import { environment } from '../../../environments/environment';
 
 export const DEMO_USERS = [
   { name: 'Meera Patel', email: 'meera@arvo.com', role: 'Support Lead (Admin)' },
@@ -20,7 +21,7 @@ export const DEMO_USERS = [
   providedIn: 'root',
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5001/api/auth';
+  private apiUrl = `${environment.apiUrl}/auth`;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -76,3 +77,4 @@ export class AuthService {
     return this.http.get<{ success: boolean; agents: User[] }>(`${this.apiUrl}/agents`);
   }
 }
+

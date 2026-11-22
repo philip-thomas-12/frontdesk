@@ -82,3 +82,4 @@ export class SLABadgeComponent {
     return `${remMins}m left`;
   }
 }
+

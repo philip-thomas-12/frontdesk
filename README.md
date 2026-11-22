@@ -405,3 +405,4 @@ Frontdesk is engineered for straightforward cloud deployment without paid vendor
 - **Backend:** Compatible with **Render**, **Railway**, **Fly.io**, or **AWS ECS/App Runner**.
 - **Database:** Standard PostgreSQL (compatible with **Supabase**, **Neon**, **AWS RDS**, or **Aiven**).
 - **Environment Variables:** All configs are loaded via standard environment variables.
+
