@@ -20,6 +20,24 @@ export function createApp() {
   app.use(express.json({ limit: '5mb' }));
   app.use(express.urlencoded({ extended: true }));
 
+  // Root welcoming endpoint (prevents "Cannot GET /" on Render)
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      status: 'ONLINE',
+      system: 'Frontdesk API — Arvo Systems Support Ticket Management',
+      version: '1.0.0',
+      health: '/api/health',
+      endpoints: {
+        health: '/api/health',
+        auth: '/api/auth/login',
+        dashboard: '/api/dashboard/stats',
+        tickets: '/api/tickets',
+        customer: '/api/customer/tickets/:id',
+      },
+      message: 'Frontdesk backend is running and operational.',
+    });
+  });
+
   // Health check
   app.get('/api/health', (req, res) => {
     res.status(200).json({
