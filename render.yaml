@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: frontdesk-backend
+    runtime: node
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: node dist/src/server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: CORS_ORIGIN
+        value: https://frontdesk-ruby-two.vercel.app
+      - key: SLA_TIMEZONE
+        value: Asia/Kolkata
+      - key: AUTO_CLOSE_INTERVAL_MS
+        value: 3600000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: frontdesk-db
+          property: connectionString
+
+databases:
+  - name: frontdesk-db
+    plan: free
+    region: singapore
+    databaseName: frontdesk
+    user: frontdesk

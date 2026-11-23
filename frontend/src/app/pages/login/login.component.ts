@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { AuthService, DEMO_USERS } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -32,8 +34,15 @@ import { ToastService } from '../../core/services/toast.service';
                   type="email"
                   formControlName="email"
                   placeholder="e.g. meera@arvo.com"
+                  autocomplete="username"
                   class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white text-slate-900"
                 />
+                <p
+                  *ngIf="loginForm.controls['email'].touched && loginForm.controls['email'].invalid"
+                  class="mt-1 text-[11px] font-medium text-red-600"
+                >
+                  Enter a valid support agent email address.
+                </p>
               </div>
             </div>
 
@@ -46,8 +55,15 @@ import { ToastService } from '../../core/services/toast.service';
                   type="password"
                   formControlName="password"
                   placeholder="••••••••••••"
+                  autocomplete="current-password"
                   class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white text-slate-900"
                 />
+                <p
+                  *ngIf="loginForm.controls['password'].touched && loginForm.controls['password'].invalid"
+                  class="mt-1 text-[11px] font-medium text-red-600"
+                >
+                  Password is required.
+                </p>
               </div>
             </div>
 
@@ -110,6 +126,7 @@ export class LoginComponent {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private toast: ToastService
   ) {
     this.loginForm = this.fb.group({
@@ -119,19 +136,43 @@ export class LoginComponent {
   }
 
   onSubmit() {
-    if (this.loginForm.invalid) return;
+    if (this.loading) return;
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
 
     this.loading = true;
-    this.authService.login(this.loginForm.value).subscribe({
-      next: () => {
-        this.toast.success('Signed in successfully.');
-        this.router.navigate(['/dashboard']);
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Login failed. Please check your credentials.');
-        this.loading = false;
-      },
-    });
+    this.authService
+      .login(this.loginForm.getRawValue())
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Signed in successfully.');
+          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+          this.router.navigateByUrl(returnUrl && returnUrl.startsWith('/') ? returnUrl : '/dashboard');
+        },
+        error: (err: HttpErrorResponse) => {
+          this.toast.error(this.describeLoginError(err));
+        },
+      });
+  }
+
+  /** Distinguishes bad credentials (401) from API/database outages (0, 5xx). */
+  private describeLoginError(err: HttpErrorResponse): string {
+    if (err.status === 0) {
+      return 'Cannot reach the Frontdesk API. Please check your connection and try again.';
+    }
+    if (err.status === 401) {
+      return err.error?.message || 'Invalid email or password.';
+    }
+    if (err.status >= 500) {
+      return 'The Frontdesk server is temporarily unavailable (server or database error). Please try again shortly.';
+    }
+    if (err.status === 400) {
+      return err.error?.errors?.[0]?.message || 'Please check the email and password format.';
+    }
+    return err.error?.message || 'Login failed. Please try again.';
   }
 
   quickLogin(email: string) {

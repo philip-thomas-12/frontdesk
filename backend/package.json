@@ -4,8 +4,8 @@
   "description": "Production-ready REST API for Frontdesk Support Ticket System",
   "main": "dist/src/server.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/src/server.js",
+    "build": "npx prisma generate && tsc",
+    "start": "npx prisma migrate deploy && node dist/src/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",

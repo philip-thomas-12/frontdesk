@@ -11,9 +11,24 @@ export function createApp() {
   const app = express();
 
   // Basic security and parsing
+  const allowedOrigins = [
+    config.corsOrigin,
+    'http://localhost:4200',
+    'https://frontdesk-ruby-two.vercel.app',
+  ].filter(Boolean);
+
   app.use(
     cors({
-      origin: '*', // Allow local frontend during development
+      // Reflect explicitly allowed origins (wildcard cannot be combined with credentials)
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+        try {
+          if (new URL(origin).hostname.endsWith('.vercel.app')) return callback(null, true);
+        } catch {
+          /* malformed origin */
+        }
+        return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+      },
       credentials: true,
     })
   );
