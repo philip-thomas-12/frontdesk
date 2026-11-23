@@ -62,6 +62,17 @@ export function createApp() {
     });
   });
 
+  // DB connectivity diagnostic (non-sensitive — only reveals connection status)
+  app.get('/api/health/db', async (req, res) => {
+    const prisma = (await import('./config/db')).default;
+    try {
+      const userCount = await prisma.user.count();
+      res.status(200).json({ status: 'DB_CONNECTED', userCount, timestamp: new Date().toISOString() });
+    } catch (err: any) {
+      res.status(503).json({ status: 'DB_ERROR', message: err.message, timestamp: new Date().toISOString() });
+    }
+  });
+
   // REST API Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/dashboard', dashboardRoutes);
