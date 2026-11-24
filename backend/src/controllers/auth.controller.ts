@@ -104,3 +104,17 @@ export async function listAgents(req: AuthRequest, res: Response, next: NextFunc
   }
 }
 
+export async function reseedDatabase(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { resetAndSeedDemoTickets } = await import('../utils/startupSeed');
+    const result = await resetAndSeedDemoTickets();
+    res.status(200).json({
+      success: true,
+      message: 'Database tickets successfully reset to pristine demo state.',
+      ticketCount: result.ticketCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+

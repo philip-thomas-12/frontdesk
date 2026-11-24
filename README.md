@@ -1,6 +1,6 @@
 # Frontdesk — Centralized Support Ticket Management System
 
-[![Frontdesk CI Pipeline](https://github.com/arvo-systems/frontdesk/actions/workflows/ci.yml/badge.svg)](https://github.com/arvo-systems/frontdesk/actions/workflows/ci.yml)
+[![Frontdesk CI Pipeline](https://github.com/philip-thomas-12/frontdesk/actions/workflows/ci.yml/badge.svg)](https://github.com/philip-thomas-12/frontdesk/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![Angular](https://img.shields.io/badge/Angular-18.x-red.svg)](https://angular.dev/)
@@ -280,7 +280,7 @@ The database seed provisions all **9 Arvo Systems demo agents** with pre-configu
 
 ### 1. Clone & Configure Environment
 ```bash
-git clone https://github.com/arvo-systems/frontdesk.git
+git clone https://github.com/philip-thomas-12/frontdesk.git
 cd frontdesk
 cp backend/.env.example backend/.env
 ```
@@ -336,7 +336,7 @@ To run the complete production-configured stack (PostgreSQL database, Node.js ba
 docker-compose up --build
 ```
 
-- **Frontend Portal:** [http://localhost:4200](http://localhost:4200)
+- **Frontend Portal:** [http://localhost:4200](http://localhost:4200) (Nginx container listening on :80, mapped to host :4200)
 - **Backend API:** [http://localhost:5001](http://localhost:5001)
 - **Database:** PostgreSQL on `localhost:5432`
 
@@ -389,12 +389,20 @@ cd backend
 npm test
 ```
 
-### Verified Test Cases
+### Verified Test Cases (13 passing tests across 2 suites)
+
+#### Suite 1: SLA Engine & Business Hours Verification (`sla.test.ts`)
 - ✅ **Working Hours Validation:** Mon–Fri 09:30–18:30 IST; before/after shift, weekend, and holiday exclusion.
 - ✅ **Monday 10:00 AM Ticket:** Urgent (2h response: 12:00 PM, same-day resolution: 18:30 IST); Medium (4.5h response, 3 working days resolution); Low (9h response, 5 working days resolution skipping holidays).
 - ✅ **Friday 18:00 Ticket (Weekend Crossing):** 30 mins used on Friday + 90 mins rolled across Saturday & Sunday to Monday 11:00 AM.
 - ✅ **SLA Pauses & Extensions:** Deadlines extend by exact paused working minutes upon customer response.
 - ✅ **Overdue Status Suppression:** Confirmed overdue status is suppressed during non-working hours and weekends.
+
+#### Suite 2: Incident Guardrails & Security Stories (`incidents.test.ts`)
+- ✅ **INC-0291 (Concurrency Collision):** Confirmed atomic `SELECT ... FOR UPDATE` claim returns `HTTP 409 Conflict` when another agent claims concurrently.
+- ✅ **INC-0304 (Zero-Trust Customer Portal):** `serializePublicTicket()` physically strips `internalNotes`, `auditLogs`, `assignments`, and internal IDs from public responses.
+- ✅ **INC-0318 (Audit Log Provenance):** Public reply endpoint verifies and binds customer identity to verified customer record to prevent audit log spoofing.
+- ✅ **5-Working-Day Reopening Window:** Allows reopening within 5 working days of resolution; strictly rejects reopening beyond 5 working days.
 
 ---
 

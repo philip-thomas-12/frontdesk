@@ -33,3 +33,4 @@ databases:
     region: singapore
     databaseName: frontdesk
     user: frontdesk
+

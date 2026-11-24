@@ -161,22 +161,32 @@ export class TicketService {
       }
     }
 
-    // Overdue filter logic
+    // Overdue filter logic (aligned with slaService.evaluateOverdueStatus)
     if (filters.isOverdue === 'true') {
       const now = new Date();
-      where.AND = [
-        { status: { in: [Status.OPEN, Status.IN_PROGRESS] } },
-        {
-          OR: [
-            {
-              AND: [{ firstResponseAt: null }, { responseDueAt: { lt: now } }],
-            },
-            {
-              AND: [{ resolvedAt: null }, { resolutionDueAt: { lt: now } }],
-            },
-          ],
-        },
-      ];
+      const holidays = await prisma.holiday.findMany();
+      slaService.updateHolidays(holidays);
+
+      // Outside business hours, weekends, or holidays, overdue status is suppressed!
+      const isWorkingShift = slaService['businessHours'].isWorkingTime(now);
+      if (!isWorkingShift) {
+        // Return no overdue tickets during non-working time, matching dashboard overdue: 0
+        where.id = 'NO_OVERDUE_DURING_SUPPRESSED_HOURS';
+      } else {
+        where.AND = [
+          { status: { in: [Status.OPEN, Status.IN_PROGRESS] } },
+          {
+            OR: [
+              {
+                AND: [{ firstResponseAt: null }, { responseDueAt: { lt: now } }],
+              },
+              {
+                AND: [{ resolvedAt: null }, { resolutionDueAt: { lt: now } }],
+              },
+            ],
+          },
+        ];
+      }
     }
 
     // Sorting
@@ -781,6 +791,11 @@ export class TicketService {
       throw error;
     }
 
+    // Recalculate fresh resolution SLA deadline from reopen time so reopened ticket is not immediately breached
+    const holidays = await prisma.holiday.findMany();
+    slaService.updateHolidays(holidays);
+    const { resolutionDueAt: newResolutionDueAt } = slaService.calculateInitialDeadlines(ticket.priority, now);
+
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.ticket.update({
         where: { id: ticket.id },
@@ -789,6 +804,7 @@ export class TicketService {
           reopenedAt: now,
           reopenCount: { increment: 1 },
           resolvedAt: null, // Clear resolution timestamp
+          resolutionDueAt: newResolutionDueAt, // Fresh SLA resolution window for investigation
           updatedAt: now,
         },
         include: {

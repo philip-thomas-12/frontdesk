@@ -84,9 +84,19 @@ Here is an honest, transparent breakdown of what was prioritized, what was inten
 - **Why it was skipped:** Arvo currently handles ~40 tickets/day (~1,200/month). For this volume, PostgreSQL B-Tree indexed queries and `ILIKE` multi-attribute filtering run in sub-millisecond response times. Adding Elasticsearch would be premature overengineering.
 - **How I would build it next:** Implement PostgreSQL native `tsvector` and `tsquery` full-text search indices with GIN indexing across title, description, and message contents.
 
+#### E. Opaque Signed Magic Tokens for Customer Portal Access
+- **What was skipped:** Cryptographically signed UUIDv4 magic tokens (e.g., `/portal?token=eyJ...`) for customer access.
+- **Why it was skipped:** Zero data leakage (`INC-0304`) was achieved at the data access layer by physically partitioning private notes into `internal_notes` and running all public requests through `serializePublicTicket()`. To prevent audit log spoofing (`INC-0318`), customer submissions are bound directly to the verified ticket customer record.
+- **How I would build it next:** Generate per-ticket random cryptographic tokens on ticket creation so customer URLs cannot be sequentially enumerated.
+
+#### F. Strict Agent Role Partitioning (Collaborative Peer Model)
+- **What was skipped:** Strict restriction preventing agents from modifying tickets owned by another agent.
+- **Why it was skipped:** In Meera's team of 9 agents handling 40 issues/day, agents frequently cover for each other during lunch breaks or urgent spikes. Hard-blocking peer reassignments would introduce operational bottlenecks. The `authorizeRole` middleware is implemented and enforced for administrative operations (e.g. system re-seeding and maintenance), while ticket operations follow a collaborative team model with full audit logging.
+- **How I would build it next:** Add a configurable team policy flag (`STRICT_OWNERSHIP=true`) allowing only ticket owners and admins to alter priority or close tickets.
+
 ---
 
 ### 3. Summary Reflection
 
-Every architectural tradeoff was made consciously to guarantee that the **business rules**, **SLA calculation accuracy**, **data isolation security**, and **concurrency safety** specified in Section 3 and Section 4 of the hiring test were 100% complete, fully tested, and verifiable by the evaluating team.
+Every architectural tradeoff was made consciously to guarantee that the **business rules**, **SLA calculation accuracy**, **data isolation security**, and **concurrency safety** specified in Section 3 and Section 4 of the hiring test were built cleanly, backed by automated test suites (`sla.test.ts` and `incidents.test.ts`), and verifiable by the evaluating team on the live production deployment.
 

@@ -62,14 +62,35 @@ export function createApp() {
     });
   });
 
-  // DB connectivity diagnostic (non-sensitive — only reveals connection status)
+  // DB connectivity diagnostic (non-sensitive — hides internal errors in production)
   app.get('/api/health/db', async (req, res) => {
     const prisma = (await import('./config/db')).default;
     try {
       const userCount = await prisma.user.count();
       res.status(200).json({ status: 'DB_CONNECTED', userCount, timestamp: new Date().toISOString() });
     } catch (err: any) {
-      res.status(503).json({ status: 'DB_ERROR', message: err.message, timestamp: new Date().toISOString() });
+      const isProd = process.env.NODE_ENV === 'production';
+      res.status(503).json({
+        status: 'DB_ERROR',
+        message: isProd ? 'Database connection unavailable' : err.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
+  // Background cron hook: allows external cron service (e.g. cron-job.org / GitHub Actions)
+  // to invoke auto-close sweeps without relying on an idle in-process timer
+  app.get('/api/cron/auto-close', async (req, res) => {
+    try {
+      const lifecycleService = (await import('./services/ticketLifecycle.service')).default;
+      const result = await lifecycleService.processAutoClosure();
+      res.status(200).json({
+        success: true,
+        message: 'Auto-closure sweep completed',
+        ...result,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: 'Auto-closure sweep failed' });
     }
   });
 

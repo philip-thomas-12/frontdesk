@@ -38,10 +38,19 @@ export async function addCustomerReply(req: Request, res: Response, next: NextFu
       return res.status(400).json({ success: false, message: 'Message content is required.' });
     }
 
+    const ticket = await ticketService.getTicketById(id, false);
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: `Ticket '${id}' not found.` });
+    }
+
+    // Bind identity to verified customer record to prevent audit log spoofing (Incident INC-0318)
+    const verifiedName = ticket.customer?.name || customerName || 'Customer';
+    const verifiedEmail = ticket.customer?.email || customerEmail || null;
+
     const message = await ticketService.addPublicReply(id, content, {
-      id: null,
-      name: customerName || 'Customer',
-      email: customerEmail || null,
+      id: ticket.customer?.id || null,
+      name: verifiedName,
+      email: verifiedEmail,
       role: 'CUSTOMER',
     });
 
@@ -64,16 +73,24 @@ export async function reopenCustomerTicket(req: Request, res: Response, next: Ne
       return res.status(400).json({ success: false, message: 'A reason of at least 5 characters is required.' });
     }
 
-    const ticket = await ticketService.reopenTicket(id, reason, {
-      id: 'customer',
-      name: customerName || 'Customer',
+    const ticket = await ticketService.getTicketById(id, false);
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: `Ticket '${id}' not found.` });
+    }
+
+    // Bind to verified customer
+    const verifiedName = ticket.customer?.name || customerName || 'Customer';
+
+    const updated = await ticketService.reopenTicket(id, reason, {
+      id: ticket.customer?.id || 'customer',
+      name: verifiedName,
       role: 'CUSTOMER',
     });
 
     res.status(200).json({
       success: true,
       message: 'Ticket reopened successfully.',
-      ticket: ticketService.serializePublicTicket(ticket),
+      ticket: ticketService.serializePublicTicket(updated),
     });
   } catch (error) {
     next(error);
