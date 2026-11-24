@@ -78,9 +78,19 @@ export function createApp() {
     }
   });
 
-  // Background cron hook: allows external cron service (e.g. cron-job.org / GitHub Actions)
-  // to invoke auto-close sweeps without relying on an idle in-process timer
-  app.get('/api/cron/auto-close', async (req, res) => {
+  // Background cron hook: protected by shared secret header or query param
+  // Can be called by external cron services (e.g. cron-job.org / GitHub Actions)
+  app.post('/api/cron/auto-close', async (req, res) => {
+    const expectedSecret = process.env.CRON_SECRET || 'frontdesk_cron_secret_2026';
+    const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+
+    if (providedSecret !== expectedSecret) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized: Missing or invalid x-cron-secret header',
+      });
+    }
+
     try {
       const lifecycleService = (await import('./services/ticketLifecycle.service')).default;
       const result = await lifecycleService.processAutoClosure();

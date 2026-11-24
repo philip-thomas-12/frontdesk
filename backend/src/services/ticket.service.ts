@@ -168,7 +168,7 @@ export class TicketService {
       slaService.updateHolidays(holidays);
 
       // Outside business hours, weekends, or holidays, overdue status is suppressed!
-      const isWorkingShift = slaService['businessHours'].isWorkingTime(now);
+      const isWorkingShift = slaService.isWorkingShift(now);
       if (!isWorkingShift) {
         // Return no overdue tickets during non-working time, matching dashboard overdue: 0
         where.id = 'NO_OVERDUE_DURING_SUPPRESSED_HOURS';

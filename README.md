@@ -399,7 +399,7 @@ npm test
 - ✅ **Overdue Status Suppression:** Confirmed overdue status is suppressed during non-working hours and weekends.
 
 #### Suite 2: Incident Guardrails & Security Stories (`incidents.test.ts`)
-- ✅ **INC-0291 (Concurrency Collision):** Confirmed atomic `SELECT ... FOR UPDATE` claim returns `HTTP 409 Conflict` when another agent claims concurrently.
+- ✅ **INC-0291 (Concurrency Collision):** Validates controller HTTP 409 Conflict mapping and duplicate claim prevention when another agent claims concurrently.
 - ✅ **INC-0304 (Zero-Trust Customer Portal):** `serializePublicTicket()` physically strips `internalNotes`, `auditLogs`, `assignments`, and internal IDs from public responses.
 - ✅ **INC-0318 (Audit Log Provenance):** Public reply endpoint verifies and binds customer identity to verified customer record to prevent audit log spoofing.
 - ✅ **5-Working-Day Reopening Window:** Allows reopening within 5 working days of resolution; strictly rejects reopening beyond 5 working days.

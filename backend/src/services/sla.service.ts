@@ -26,6 +26,10 @@ export class SLAService {
     this.businessHours.setHolidays(holidays);
   }
 
+  public isWorkingShift(time: Date = new Date()): boolean {
+    return this.businessHours.isWorkingTime(time);
+  }
+
   /**
    * Calculate initial SLA deadlines for a newly created ticket based on priority.
    */

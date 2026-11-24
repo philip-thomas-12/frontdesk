@@ -76,7 +76,7 @@ export class DashboardService {
         low: lowCount,
       },
       serverTime: now.toISOString(),
-      businessHoursActive: slaService['businessHours'].isWorkingTime(now),
+      businessHoursActive: slaService.isWorkingShift(now),
     };
   }
 }
