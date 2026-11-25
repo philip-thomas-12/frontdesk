@@ -46,7 +46,7 @@ Here is an honest, transparent breakdown of what was prioritized, what was inten
 
 5. **Tamper-Proof Immutable Audit Log (Incident INC-0318)**:
    - Append-only event history log (`ticket_audit_logs`). Every ticket creation, assignment claim, reassignment, public reply, internal note, status change, and SLA recalculation records actor name, actor type, timestamp, and metadata.
-   - No `UPDATE` or `DELETE` API endpoints exist for audit records.
+   - No `UPDATE` or `DELETE` API endpoints exist for audit records during normal operations. *(Note: `POST /api/auth/reseed` is an explicit Admin-only sandbox reset utility provided for evaluators to restore the 4 initial demo tickets cleanly; it is not part of ticket operations and should be disabled in a live production environment.)*
 
 6. **Middle-of-Ticket Priority Change Policy**:
    - Addressed the unanswered meeting question: *"What happens to the timer if we change a ticket to urgent in the middle?"*

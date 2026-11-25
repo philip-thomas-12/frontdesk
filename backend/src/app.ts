@@ -78,12 +78,17 @@ export function createApp() {
     }
   });
 
-  // Background cron hook: protected by shared secret header or query param
-  // Can be called by external cron services (e.g. cron-job.org / GitHub Actions)
+  // Background cron hook: protected by CRON_SECRET env var and x-cron-secret header only
   app.post('/api/cron/auto-close', async (req, res) => {
-    const expectedSecret = process.env.CRON_SECRET || 'frontdesk_cron_secret_2026';
-    const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+    const expectedSecret = process.env.CRON_SECRET;
+    if (!expectedSecret) {
+      return res.status(503).json({
+        success: false,
+        message: 'Cron endpoint disabled: CRON_SECRET is not configured.',
+      });
+    }
 
+    const providedSecret = req.headers['x-cron-secret'];
     if (providedSecret !== expectedSecret) {
       return res.status(401).json({
         success: false,

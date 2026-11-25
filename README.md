@@ -295,6 +295,7 @@ JWT_EXPIRES_IN="24h"
 CORS_ORIGIN="http://localhost:4200"
 SLA_TIMEZONE="Asia/Kolkata"
 AUTO_CLOSE_INTERVAL_MS=3600000
+CRON_SECRET="your_cron_secret_key"
 ```
 
 ### 2. Backend Setup & Seeding
@@ -346,10 +347,11 @@ docker-compose up --build
 
 All authenticated endpoints require an `Authorization: Bearer <JWT_TOKEN>` header.
 
-### Authentication
+### Authentication & Sandbox Reset
 - `POST /api/auth/login` — Sign in agent (`email`, `password`). Returns JWT and sanitized user profile.
 - `GET /api/auth/me` — Retrieve current authenticated agent profile.
 - `GET /api/auth/agents` — List all active Arvo Systems support agents.
+- `POST /api/auth/reseed` — **Admin-only Demo Sandbox Reset** (`Meera Patel` only). Resets tickets and logs back to the 4 clean demo tickets for evaluator testing (distinct from INC-0318's immutable ticket audit trail; intended to be disabled outside demo environments).
 
 ### Dashboard Statistics
 - `GET /api/dashboard/stats` — Real-time metrics (Total, Open, In-Progress, Waiting, Resolved, Closed, Overdue, My Assigned, Priority Breakdown, Shift Status).
@@ -377,6 +379,11 @@ All authenticated endpoints require an `Authorization: Bearer <JWT_TOKEN>` heade
 - `GET /api/customer/tickets/:id` — Public ticket view (internal notes and staff metadata stripped).
 - `POST /api/customer/tickets/:id/reply` — Customer reply (automatically unpauses SLA if waiting).
 - `POST /api/customer/tickets/:id/reopen` — Customer reopen ticket within 5 working days.
+
+### Maintenance & Health
+- `GET /api/health` — Service health check.
+- `GET /api/health/db` — Database connectivity check (internal error details hidden in production).
+- `POST /api/cron/auto-close` — External cron trigger for 5-day auto-closure (requires `x-cron-secret` header matching `CRON_SECRET`).
 
 ---
 
